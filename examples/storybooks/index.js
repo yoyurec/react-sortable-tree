@@ -7,6 +7,7 @@ import BarebonesExample from './barebones';
 import CallbacksExample from './callbacks';
 import CanDropExample from './can-drop';
 import DragOutToRemoveExample from './drag-out-to-remove';
+import DynamicHeight from './dynamic-height';
 import ExternalNodeExample from './external-node';
 import GenerateNodePropsExample from './generate-node-props';
 import ModifyNodesExample from './modify-nodes';
@@ -74,4 +75,7 @@ storiesOf('Advanced', module)
   )
   .add('Drag out to remove', () =>
     wrapWithSource(<DragOutToRemoveExample />, 'drag-out-to-remove.js')
+  )
+  .add('Dynamic Height Rows', () =>
+    wrapWithSource(<DynamicHeight />, 'dynamic-height.js')
   );

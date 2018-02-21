@@ -368,21 +368,24 @@ class ReactSortableTree extends Component {
     const rows = this.getRows(addedResult.treeData);
     const expandedParentPath = rows[addedResult.treeIndex].path;
 
-    this.setState({
-      draggedNode,
-      draggedDepth,
-      draggedMinimumTreeIndex,
-      draggingTreeData: changeNodeAtPath({
-        treeData: draggingTreeData,
-        path: expandedParentPath.slice(0, -1),
-        newNode: ({ node }) => ({ ...node, expanded: true }),
-        getNodeKey: this.props.getNodeKey,
-      }),
-      // reset the scroll focus so it doesn't jump back
-      // to a search result while dragging
-      searchFocusTreeIndex: null,
-      dragging: true,
-    });
+    this.setState(
+      {
+        draggedNode,
+        draggedDepth,
+        draggedMinimumTreeIndex,
+        draggingTreeData: changeNodeAtPath({
+          treeData: draggingTreeData,
+          path: expandedParentPath.slice(0, -1),
+          newNode: ({ node }) => ({ ...node, expanded: true }),
+          getNodeKey: this.props.getNodeKey,
+        }),
+        // reset the scroll focus so it doesn't jump back
+        // to a search result while dragging
+        searchFocusTreeIndex: null,
+        dragging: true,
+      },
+      () => this.props.onDragHover()
+    );
   }
 
   endDrag(dropResult) {
@@ -488,7 +491,16 @@ class ReactSortableTree extends Component {
 
   renderRow(
     { node, parentNode, path, lowerSiblingCounts, treeIndex },
-    { listIndex, style, getPrevRow, matchKeys, swapFrom, swapDepth, swapLength }
+    {
+      listIndex,
+      style,
+      getPrevRow,
+      matchKeys,
+      swapFrom,
+      swapDepth,
+      swapLength,
+      parent,
+    }
   ) {
     const {
       canDrag,
@@ -508,6 +520,7 @@ class ReactSortableTree extends Component {
       path,
       lowerSiblingCounts,
       treeIndex,
+      listIndex,
       isSearchMatch,
       isSearchFocus,
     };
@@ -538,6 +551,7 @@ class ReactSortableTree extends Component {
         {...sharedProps}
       >
         <NodeContentRenderer
+          parent={parent}
           parentNode={parentNode}
           isSearchMatch={isSearchMatch}
           isSearchFocus={isSearchFocus}
@@ -625,7 +639,7 @@ class ReactSortableTree extends Component {
       const ScrollZoneVirtualList = this.scrollZoneVirtualList;
       // Render list with react-virtualized
       list = (
-        <AutoSizer>
+        <AutoSizer onResize={this.props.onResize}>
           {({ height, width }) => (
             <ScrollZoneVirtualList
               {...scrollToInfo}
@@ -655,8 +669,9 @@ class ReactSortableTree extends Component {
                         path: rows[index].path,
                       })
               }
-              rowRenderer={({ index, style: rowStyle }) =>
+              rowRenderer={({ index, style: rowStyle, parent }) =>
                 this.renderRow(rows[index], {
+                  parent,
                   listIndex: index,
                   style: rowStyle,
                   getPrevRow: () => rows[index - 1] || null,
@@ -768,6 +783,9 @@ ReactSortableTree.propTypes = {
   // NOTE: Auto-scrolling while dragging, and scrolling to the `searchFocusOffset` will be disabled.
   isVirtualized: PropTypes.bool,
 
+  // Required when using multi-height rows to stop rows jumping as sizes changed while dragging.
+  dragPastCentre: PropTypes.bool,
+
   treeNodeRenderer: PropTypes.func,
 
   // Override the default component for rendering nodes (but keep the scaffolding generator)
@@ -806,6 +824,12 @@ ReactSortableTree.propTypes = {
   // Called after node move operation.
   onMoveNode: PropTypes.func,
 
+  // Used by react-virtualized
+  onResize: PropTypes.func,
+
+  // Called after drag hover operation.
+  onDragHover: PropTypes.func,
+
   // Determine whether a node can be dragged. Set to false to disable dragging on all nodes.
   canDrag: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
 
@@ -837,10 +861,13 @@ ReactSortableTree.defaultProps = {
   getNodeKey: defaultGetNodeKey,
   innerStyle: {},
   isVirtualized: true,
+  dragPastCentre: false,
   maxDepth: null,
   treeNodeRenderer: null,
   nodeContentRenderer: null,
   onMoveNode: () => {},
+  onResize: () => {},
+  onDragHover: () => {},
   onVisibilityToggle: () => {},
   placeholderRenderer: null,
   reactVirtualizedListProps: {},

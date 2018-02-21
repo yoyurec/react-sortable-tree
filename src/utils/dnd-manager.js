@@ -57,6 +57,10 @@ export default class DndManager {
     return this.treeRef.props.maxDepth;
   }
 
+  get dragPastCentre() {
+    return this.treeRef.props.dragPastCentre;
+  }
+
   getTargetDepth(dropTargetProps, monitor, component) {
     let dropTargetDepth = 0;
 
@@ -223,14 +227,48 @@ export default class DndManager {
           component
         );
         const draggedNode = monitor.getItem().node;
+        const dragIndex = monitor.getItem().treeIndex;
+        const hoverIndex = dropTargetProps.treeIndex;
+
+        // Redraw if hovered above same node but at a different depth
         const needsRedraw =
-          // Redraw if hovered above different nodes
-          dropTargetProps.node !== draggedNode ||
-          // Or hovered above the same node but at a different depth
+          dropTargetProps.node === draggedNode &&
           targetDepth !== dropTargetProps.path.length - 1;
 
         if (!needsRedraw) {
-          return;
+          if (
+            dropTargetProps.node === draggedNode ||
+            dragIndex === hoverIndex
+          ) {
+            return;
+          }
+
+          if (this.dragPastCentre === true) {
+            const hoverRect = findDOMNode(component).getBoundingClientRect(); // eslint-disable-line react/no-find-dom-node
+
+            // Get vertical middle
+            const hoverMiddleY = (hoverRect.bottom - hoverRect.top) / 2;
+
+            // Determine mouse position
+            const clientOffset = monitor.getClientOffset();
+
+            // Get pixels to the top
+            const hoverClientY = clientOffset.y - hoverRect.top;
+
+            // Only perform the move when the mouse has crossed half of the items height
+            // When dragging downwards, only move when the cursor is below 50%
+            // When dragging upwards, only move when the cursor is above 50%
+
+            // Dragging downwards
+            if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+              return;
+            }
+
+            // Dragging upwards
+            if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+              return;
+            }
+          }
         }
 
         this.dragHover({
@@ -239,6 +277,8 @@ export default class DndManager {
           minimumTreeIndex: dropTargetProps.listIndex,
           depth: targetDepth,
         });
+
+        monitor.getItem().treeIndex = hoverIndex; //eslint-disable-line
       },
 
       canDrop: this.canDrop.bind(this),
